@@ -9,7 +9,7 @@
 namespace exl::hook::nx64 {
 
     /* Size of stack to reserve for the context. Adjust this along with CTX_STACK_SIZE in inline_asm.s */
-    static constexpr int CtxStackSize = 0x100;
+    static constexpr int CtxStackSize = 0x180;
 
     namespace reg = exl::armv8::reg;
     namespace inst = exl::armv8::inst;
@@ -24,12 +24,13 @@ namespace exl::hook::nx64 {
     JIT_CREATE(s_InlineHookJit, setting::InlinePoolSize);
     static size_t s_EntryIndex = 0;
 
+    /* changing the name to not conflict with other mods that use the usual fp-less version */
     extern "C" {
-        extern char exl_inline_hook_impl;
+        extern char exl_inline_hook_with_fp_impl;
     }
 
     static uintptr_t GetImpl() {
-        return reinterpret_cast<uintptr_t>(&exl_inline_hook_impl);
+        return reinterpret_cast<uintptr_t>(&exl_inline_hook_with_fp_impl);
     }
 
     static const Entry* GetEntryRx() {

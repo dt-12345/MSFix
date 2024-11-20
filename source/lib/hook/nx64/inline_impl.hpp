@@ -2,6 +2,8 @@
 
 namespace exl::hook::nx64 {
 
+    static constexpr int CtxGpOffset = 0x80;
+
     union GpRegister {
         u64 X;
         u32 W;
@@ -16,6 +18,15 @@ namespace exl::hook::nx64 {
         };
     };
 
+    union FpRegister {
+        double D;
+        float S[2];
+    };
+
+    union FpRegisters {
+        FpRegister m_Fp[16];
+    };
+
     namespace impl {
         /* This type is only unioned with GpRegisters, so this is valid. */
         struct GpRegisterAccessorImpl {
@@ -25,21 +36,48 @@ namespace exl::hook::nx64 {
         };
 
         struct GpRegisterAccessor64 : public GpRegisterAccessorImpl {
-            u64& operator[](int index)
-            {
+            u64& operator[](int index) {
                 return Get().m_Gp[index].X;
             }
         };
 
         struct GpRegisterAccessor32 : public GpRegisterAccessorImpl {
-            u32& operator[](int index)
-            {
+            u32& operator[](int index) {
                 return Get().m_Gp[index].W;
+            }
+        };
+
+        struct FpRegisterAccessorImpl {
+            FpRegisters& Get() {
+                return *reinterpret_cast<FpRegisters*>(this);
+            }
+        };
+
+        struct FpRegisterAccessor64 : public FpRegisterAccessorImpl {
+            double& operator[](int index) {
+                return Get().m_Fp[index].D;
+            }
+        };
+
+        /*
+        index has to be adjusted because of how the registesr are layed out
+        |----------Q0----------|
+        |----D1----||----D0----|
+        |-S1-||-S0-||-S3-||-S2-|
+        */
+        struct FpRegisterAccessor32 : public FpRegisterAccessorImpl {
+            float& operator[](int index) {
+                return Get().m_Fp[index >> 1].S[(index & 1) ^ 1];
             }
         };
     }
 
     struct InlineCtx {
+        union {
+            impl::FpRegisterAccessor64 D;
+            impl::FpRegisterAccessor32 S;
+            FpRegisters m_Fpr;
+        };
         union {
             /* Accessors are union'd with the gprs so that they can be accessed directly. */
             impl::GpRegisterAccessor64 X;
@@ -47,6 +85,7 @@ namespace exl::hook::nx64 {
             GpRegisters m_Gpr;
         };
     };
+    static_assert(offsetof(InlineCtx, m_Gpr) == CtxGpOffset);
 
     void InitializeInline();
 }

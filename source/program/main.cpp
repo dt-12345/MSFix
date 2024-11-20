@@ -1,52 +1,27 @@
 #include "lib.hpp"
 
+#include "binaryoffsethelper.h"
 #include "nn.hpp"
+#include "offsets.h"
 #include "utils.hpp"
 #include "structs.hpp"
-#include "binaryoffsethelper.h"
 
 #include <cstring>
 
 int version;
 
-static constexpr u64 set_hook[] = {
-    0x008202b0,
-    0x00850ab4,
-    0x0077b528,
-    0x0085b4e4,
-    0x0082cbcc,
-    0x0080eb0c,
-};
-static constexpr u64 inline_1[] = {
-    0x0194309c,
-    0x0199bea0,
-    0x019999dc,
-    0x0198e89c,
-    0x0197e614,
-    0x0198c59c,
-};
-static constexpr u64 inline_2[] = {
-    0x01942f78,
-    0x0199bd7c,
-    0x019998b8,
-    0x0198e9c0,
-    0x0197e738,
-    0x0198c6c0,
-};
-static constexpr u64 fix_hook[] = {
-    0x0067390c,
-    0x006d2330,
-    0x009bb450,
-    0x006c7ae4,
-    0x00685ed4,
-    0x0066589c,
-};
+static VFRCounter s_CooldownTimer;
+
+void** s_VFRMgrPtr = nullptr;
 
 using SetStructIntFunc = void (void*, int*, void*, u32);
+using CountUpFunc = void (VFRCounter*);
 
 SetStructIntFunc* setStructInt = nullptr;
+CountUpFunc* countUp = nullptr;
 
 static constexpr u32 extralife_hash = 0xee199c3a;
+static constexpr float cooldown_frames = 30.f * 3.f;
 
 HOOK_DEFINE_INLINE(DuraFix) {
     static void Callback(exl::hook::InlineCtx *ctx) {
@@ -58,11 +33,6 @@ HOOK_DEFINE_INLINE(DuraFix) {
         u32 hash = extralife_hash;
         setStructInt(mgr, value, handle, hash);
     }
-};
-
-struct Component {
-    char _00[0x18];
-    GameActor* actor;
 };
 
 HOOK_DEFINE_INLINE(FixExtraLife) {
@@ -83,6 +53,24 @@ HOOK_DEFINE_INLINE(FixExtraLife) {
     }
 };
 
+HOOK_DEFINE_INLINE(StartCooldown) {
+    static void Callback(exl::hook::InlineCtx* ctx) {
+        s_CooldownTimer.set_time(cooldown_frames);
+    }
+};
+
+HOOK_DEFINE_INLINE(CheckTimer) {
+    static void Callback(exl::hook::InlineCtx* ctx) {
+        if (s_CooldownTimer.time <= 0.f) {
+            s_CooldownTimer.set_time(0.f);
+        } else {
+            countUp(&s_CooldownTimer);
+            
+            ctx->S[1] = *reinterpret_cast<float*>(ctx->X[19] + 0x74);
+        }
+    }
+};
+
 extern "C" void exl_main(void* x0, void* x1) {
 
     char buf[500];
@@ -99,11 +87,17 @@ extern "C" void exl_main(void* x0, void* x1) {
     PRINT("Version index %d", version);
 
     setStructInt = reinterpret_cast<SetStructIntFunc*>(exl::util::modules::GetTargetOffset(set_hook[version]));
+    countUp = reinterpret_cast<CountUpFunc*>(exl::util::modules::GetTargetOffset(countup_hook[version]));
 
     PRINT("Hooking functions...");
     DuraFix::InstallAtOffset(inline_1[version]);
     DuraFix::InstallAtOffset(inline_2[version]);
     FixExtraLife::InstallAtOffset(fix_hook[version]);
+
+    StartCooldown::InstallAtOffset(charge_attack_hook[version]);
+    StartCooldown::InstallAtOffset(spin_attack_hook[version]);
+    StartCooldown::InstallAtOffset(earthwake_hook[version]);
+    CheckTimer::InstallAtOffset(check_hook[version]);
     PRINT("Hook successful");
 
     return;
