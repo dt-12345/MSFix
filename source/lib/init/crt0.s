@@ -19,9 +19,6 @@ __module_start:
     b entrypoint
     .word __nx_mod0 - __module_start
 
-    .align 4
-    .ascii "~~exlaunch uwu~~"
-
 entrypoint:
    // Arguments on NSO entry:
     //   x0=zero                  | x1=main thread handle
@@ -70,7 +67,7 @@ bss_loop:
     // Parse ELF .dynamic section (which applies relocations to our module)
     mov x0, x23
     FROM_MOD0 1, 0x4
-    bl   exl_dynamic
+    bl   exl_relocate_self
 
     mov  x0, x25
     mov  x1, x26

@@ -4,8 +4,6 @@
 
 namespace nn::fs {
 
-    void SetFileSize(FileHandle handle, long size);
-
     /* 
         Create a file.
         path: Path where to create the path.
@@ -15,11 +13,11 @@ namespace nn::fs {
 
     /*
         Open a file.
-        handleOut:   Output for handle representing opened file.
+        outHandle:   Output for handle representing opened file.
         path:        File path to open.
         mode:        Mode to open file. See OpenMode.
     */
-    Result OpenFile(FileHandle* handleOut, char const* path, int mode);
+    Result OpenFile(FileHandle* outHandle, char const* path, int mode);
 
     /*
         Close a file.

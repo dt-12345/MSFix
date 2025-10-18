@@ -60,13 +60,13 @@ HOOK_DEFINE_INLINE(StartCooldown) {
 };
 
 HOOK_DEFINE_INLINE(CheckTimer) {
-    static void Callback(exl::hook::InlineCtx* ctx) {
+    static void Callback(exl::hook::InlineFloatCtx* ctx) {
         if (s_CooldownTimer.time <= 0.f) {
             s_CooldownTimer.set_time(0.f);
         } else {
             countUp(&s_CooldownTimer);
             
-            ctx->S[1] = *reinterpret_cast<float*>(ctx->X[19] + 0x74);
+            ctx->S[version > 5 ? 0 : 1] = *reinterpret_cast<float*>(ctx->X[19] + 0x74);
         }
     }
 };
@@ -80,7 +80,7 @@ extern "C" void exl_main(void* x0, void* x1) {
 
     PRINT("Getting app version...");
     version = InitializeAppVersion();
-    if (version == 0xffffffff || version > 5) {
+    if (version == -1 || version > 8) {
         PRINT("Error getting version");
         return;
     }
@@ -105,5 +105,5 @@ extern "C" void exl_main(void* x0, void* x1) {
 
 extern "C" NORETURN void exl_exception_entry() {
     /* TODO: exception handling */
-    EXL_ABORT(0x420);
+    EXL_ABORT("Default exception handler called!");
 }

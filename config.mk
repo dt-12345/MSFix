@@ -20,7 +20,7 @@ NPDM_JSON := qlaunch.json
 
 # Additional C/C++ flags to use.
 C_FLAGS := 
-CXX_FLAGS := -Oz -fno-strict-aliasing -fwrapv -fno-rtti -std=gnu++20 -Wno-sign-compare -Wno-error
+CXX_FLAGS := 
 
 # AsRtld settings
 #------------------------
@@ -32,10 +32,10 @@ MOUNT_PATH := /mnt/k
 #------------------------
 
 # Settings for deploying over FTP. Used by the deploy-ftp.py script.
-FTP_IP := 192.168.86.23
+FTP_IP := 192.168.0.235
 FTP_PORT := 5000
-FTP_USERNAME := Anon
-FTP_PASSWORD := Anon
+FTP_USERNAME := anonymous
+FTP_PASSWORD :=
 
 # Settings for deploying to Ryu. Used by the deploy-ryu.sh script.
 RYU_PATH := /mnt/c/Users/shado/AppData/Roaming/Ryujinx
